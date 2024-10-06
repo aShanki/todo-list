@@ -1,0 +1,12 @@
+node_modules/
+logs/
+*.log
+npm-debug.log*
+jspm_packages/
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+db/tasks.json
+db/users.json
