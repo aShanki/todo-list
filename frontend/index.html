@@ -23,6 +23,7 @@
         </div>
     </div>
 
+    <!-- Popup Modal for Deleting Account -->
     <div id="deleteAccountModal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -73,78 +74,97 @@
                 taskList.innerHTML = '';
                 tasks.forEach(task => {
                     const li = document.createElement('li');
-                    li.textContent = task.task;
-                    li.setAttribute('data-id', task.id);
-                    const deleteButton = document.createElement('button');
-                    deleteButton.textContent = 'Delete';
-                    deleteButton.onclick = () => deleteTask(task.id);
-                    li.appendChild(deleteButton);
+                    li.innerHTML = `
+                        <span>${task.task}</span>
+                        <button class="deleteBtn" data-task-id="${task.id}">Delete</button>
+                    `;
                     taskList.appendChild(li);
+                });
+
+                document.querySelectorAll('.deleteBtn').forEach(button => {
+                    button.addEventListener('click', deleteTask);
                 });
             });
         }
 
-        taskInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                const task = taskInput.value;
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && taskInput.value) {
                 fetch('http://localhost:3000/todos', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': token
                     },
-                    body: JSON.stringify({ task })
-                }).then(() => {
+                    body: JSON.stringify({ task: taskInput.value })
+                })
+                .then(() => {
                     taskInput.value = '';
                     loadTasks();
                 });
             }
         });
 
-        function deleteTask(id) {
-            fetch(`http://localhost:3000/todos/${id}`, {
+        function deleteTask(event) {
+            const taskId = event.target.getAttribute('data-task-id');
+            
+            fetch(`http://localhost:3000/todos/${taskId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': token
                 }
-            }).then(() => loadTasks());
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                loadTasks();
+            });
         }
 
-        document.getElementById('logoutBtn').addEventListener('click', function() {
+        document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('token');
             window.location.href = 'login.html';
         });
 
-        document.getElementById('deleteAccountBtn').addEventListener('click', function() {
+        document.getElementById('deleteAccountBtn').addEventListener('click', () => {
             deleteAccountModal.style.display = 'block';
         });
 
-        confirmDeleteBtn.addEventListener('click', function() {
+        closeModal.addEventListener('click', () => {
+            deleteAccountModal.style.display = 'none';
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteAccountModal.style.display = 'none';
+        });
+
+        confirmDeleteBtn.addEventListener('click', () => {
             const confirmUsername = confirmUsernameInput.value;
+
             if (confirmUsername === username) {
                 fetch('http://localhost:3000/users/delete', {
                     method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token
+                        'Authorization': token,
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ username })
-                }).then(() => {
-                    localStorage.removeItem('token');
-                    window.location.href = 'login.html';
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'register.html';
+                    } else {
+                        alert('Error deleting account.');
+                    }
                 });
             } else {
                 alert('Username does not match. Please try again.');
             }
         });
-
-        cancelDeleteBtn.addEventListener('click', function() {
-            deleteAccountModal.style.display = 'none';
-        });
-
-        closeModal.onclick = function() {
-            deleteAccountModal.style.display = 'none';
-        }
 
         loadTasks();
     </script>

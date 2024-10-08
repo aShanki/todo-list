@@ -7,50 +7,32 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = 3000;
 
-const JWT_SECRET = 'your-secret-key';
+const JWT_SECRET = 'your_secret_key';
+
+const usersFilePath = path.join(__dirname, 'data/users.json');
+const tasksFilePath = path.join(__dirname, 'data/tasks.json');
 
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, '../frontend')));
 
+function readJsonFile(filePath) {
+    return JSON.parse(fs.readFileSync(filePath));
+}
 
-const usersFilePath = path.join(__dirname, 'db', 'users.json');
-const tasksFilePath = path.join(__dirname, 'db', 'tasks.json');
-
-const readJsonFile = (filePath) => {
-    try {
-        const data = fs.readFileSync(filePath);
-        return JSON.parse(data);
-    } catch (error) {
-        return [];
-    }
-};
-
-const writeJsonFile = (filePath, data) => {
+function writeJsonFile(filePath, data) {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-};
-
-if (!fs.existsSync(path.join(__dirname, 'db'))) {
-    fs.mkdirSync(path.join(__dirname, 'db'));
 }
 
-if (!fs.existsSync(usersFilePath)) {
-    writeJsonFile(usersFilePath, []);
-}
-
-if (!fs.existsSync(tasksFilePath)) {
-    writeJsonFile(tasksFilePath, []);
-}
-
-app.post('/register', async (req, res) => {
+app.post('/register', (req, res) => {
     const { username, password } = req.body;
     const users = readJsonFile(usersFilePath);
 
-    const userExists = users.find(user => user.username === username);
-    if (userExists) {
-        return res.status(400).json({ message: 'User already exists' });
+    if (users.find(user => user.username === username)) {
+        return res.status(400).json({ message: 'Username already taken' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    users.push({ id: userId, username, password: hashedPassword });
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    users.push({ username, password: hashedPassword });
     writeJsonFile(usersFilePath, users);
 
     res.json({ message: 'User registered successfully' });
@@ -59,67 +41,67 @@ app.post('/register', async (req, res) => {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
     const users = readJsonFile(usersFilePath);
-
     const user = users.find(user => user.username === username);
-    if (!user) {
+
+    if (!user || !bcrypt.compareSync(password, user.password)) {
         return res.status(400).json({ message: 'Invalid username or password' });
     }
 
-    bcrypt.compare(password, user.password, (err, isMatch) => {
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid username or password' });
-        }
-
-        const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
-    });
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
 });
 
-const authenticate = (req, res, next) => {
+function authenticate(req, res, next) {
     const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(401).json({ message: 'Unauthorized' });
-    }
+    if (!token) return res.status(401).json({ message: 'No token provided' });
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
+        if (err) return res.status(401).json({ message: 'Failed to authenticate token' });
+
         req.user = decoded;
         next();
     });
-};
+}
 
 app.get('/todos', authenticate, (req, res) => {
     const tasks = readJsonFile(tasksFilePath);
+    const userTasks = tasks.filter(task => task.username === req.user.username);
     res.json(userTasks);
 });
 
 app.post('/todos', authenticate, (req, res) => {
     const { task } = req.body;
     const tasks = readJsonFile(tasksFilePath);
+    const newTask = { id: Date.now(), task, username: req.user.username };
+    tasks.push(newTask);
     writeJsonFile(tasksFilePath, tasks);
-    res.status(201).json({ message: 'Task added' });
+
+    res.json(newTask);
 });
 
 app.delete('/todos/:id', authenticate, (req, res) => {
     const tasks = readJsonFile(tasksFilePath);
-    const filteredTasks = tasks.filter(task => task.id !== parseInt(req.params.id, 10) || task.userId !== req.user.id);
-    writeJsonFile(tasksFilePath, filteredTasks);
+    const taskId = parseInt(req.params.id);
+    const updatedTasks = tasks.filter(task => task.id !== taskId);
+    writeJsonFile(tasksFilePath, updatedTasks);
+
     res.json({ message: 'Task deleted' });
 });
 
 app.delete('/users/delete', authenticate, (req, res) => {
-    const { username } = req.body;
     const users = readJsonFile(usersFilePath);
-    const filteredUsers = users.filter(user => user.username !== username);
-    writeJsonFile(usersFilePath, filteredUsers);
+    const updatedUsers = users.filter(user => user.username !== req.user.username);
+    writeJsonFile(usersFilePath, updatedUsers);
 
     const tasks = readJsonFile(tasksFilePath);
-    const filteredTasks = tasks.filter(task => task.userId !== req.user.id);
-    writeJsonFile(tasksFilePath, filteredTasks);
+    const updatedTasks = tasks.filter(task => task.username !== req.user.username);
+    writeJsonFile(tasksFilePath, updatedTasks);
 
     res.json({ success: true });
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 app.listen(PORT, () => {

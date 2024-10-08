@@ -10,6 +10,8 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+    background-color: #121212; /* Dark background for the body */
+    color: #e0e0e0; /* Light text color */
 }
 
 .container {
@@ -17,6 +19,7 @@ body {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    background-color: #1e1e1e; /* Dark background for the container */
     position: relative;
 }
 
@@ -83,6 +86,7 @@ h1 {
     font-size: 24px;
     margin-bottom: 20px;
     text-align: center;
+    color: #e0e0e0; /* Light text color */
 }
 
 input[type="text"], input[type="password"] {
@@ -143,6 +147,7 @@ li {
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
     margin-top: 10px;
+    background-color: #6200ea; /* Dark purple background */
 }
 
 .loginBtn:hover {
@@ -164,13 +169,14 @@ li {
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
     margin-top: 10px;
+    background-color: #6200ea; /* Dark purple background */
 }
 
 .registerBtn:hover {
     background-color: #3700b3;
 }
 
-.RegisterBtn:active {
+.registerBtn:active {
     background-color: #29008e;
 }
 
