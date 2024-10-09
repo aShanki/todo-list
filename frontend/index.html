@@ -91,6 +91,8 @@
 
         taskInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && taskInput.value) {
+                const newTask = { id: Date.now(), task: taskInput.value };
+
                 fetch('http://localhost:3000/todos', {
                     method: 'POST',
                     headers: {
@@ -99,16 +101,38 @@
                     },
                     body: JSON.stringify({ task: taskInput.value })
                 })
-                .then(() => {
-                    taskInput.value = '';
-                    loadTasks();
+                .then(response => response.json())
+                .then(savedTask => {
+                    document.querySelector(`[data-task-id="${newTask.id}"]`).setAttribute('data-task-id', savedTask.id);
+                })
+                .catch(() => {
+                    removeTaskFromUI(newTask.id);
                 });
+
+                taskInput.value = '';
             }
         });
 
+        function addTaskToUI(task) {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span>${task.task}</span>
+                <button class="deleteBtn" data-task-id="${task.id}">Delete</button>
+            `;
+            taskList.appendChild(li);
+            li.querySelector('.deleteBtn').addEventListener('click', deleteTask);
+        }
+
+        function removeTaskFromUI(taskId) {
+            const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskElement) {
+                taskElement.parentElement.remove();
+            }
+        }
+
         function deleteTask(event) {
             const taskId = event.target.getAttribute('data-task-id');
-            
+
             fetch(`http://localhost:3000/todos/${taskId}`, {
                 method: 'DELETE',
                 headers: {
@@ -121,6 +145,11 @@
                     window.location.href = 'login.html';
                     return;
                 }
+                if (!response.ok) {
+                    loadTasks();
+                }
+            })
+            .catch(() => {
                 loadTasks();
             });
         }

@@ -8,4 +8,5 @@ jspm_packages/
 .node_repl_history
 *.tgz
 .yarn-integrity
-/backend/data/*
+backend/data/tasks.json
+backend/data/users.json
