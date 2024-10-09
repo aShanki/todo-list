@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To-Do List</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo List</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
     <div class="container">
-        <h1>To-Do List</h1>
-        <input type="text" id="taskInput" placeholder="Enter a new task">
-        <div class="task-list-container">
+        <h1>Todo List</h1>
+        <input type="text" id="newTask" placeholder="New task" />
+        <div class="task-container">
             <ul id="taskList"></ul>
         </div>
         <div class="user-dropdown">
@@ -38,166 +40,139 @@
     </div>
 
     <script>
-        const token = localStorage.getItem('token');
-        const usernameDisplay = document.getElementById('usernameDisplay');
-        const deleteAccountModal = document.getElementById('deleteAccountModal');
-        const confirmUsernameInput = document.getElementById('confirmUsername');
-        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-        const closeModal = document.querySelector('.close');
+        document.addEventListener("DOMContentLoaded", () => {
+            const token = localStorage.getItem('token');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const deleteAccountModal = document.getElementById('deleteAccountModal');
+            const confirmUsernameInput = document.getElementById('confirmUsername');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+            const closeModal = document.querySelector('.close');
 
-        if (!token) {
-            window.location.href = 'login.html';
-        }
-
-        const parsedToken = JSON.parse(atob(token.split('.')[1]));
-        const username = parsedToken.username;
-        usernameDisplay.textContent = username;
-
-        const taskInput = document.getElementById('taskInput');
-        const taskList = document.getElementById('taskList');
-
-        function loadTasks() {
-            fetch('http://localhost:3000/todos', {
-                method: 'GET',
-                headers: {
-                    'Authorization': token
-                }
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                return response.json();
-            })
-            .then(tasks => {
-                taskList.innerHTML = '';
-                tasks.forEach(task => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>${task.task}</span>
-                        <button class="deleteBtn" data-task-id="${task.id}">Delete</button>
-                    `;
-                    taskList.appendChild(li);
-                });
-
-                document.querySelectorAll('.deleteBtn').forEach(button => {
-                    button.addEventListener('click', deleteTask);
-                });
-            });
-        }
-
-        taskInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && taskInput.value) {
-                const newTask = { id: Date.now(), task: taskInput.value };
-
-                fetch('http://localhost:3000/todos', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token
-                    },
-                    body: JSON.stringify({ task: taskInput.value })
-                })
-                .then(response => response.json())
-                .then(savedTask => {
-                    document.querySelector(`[data-task-id="${newTask.id}"]`).setAttribute('data-task-id', savedTask.id);
-                })
-                .catch(() => {
-                    removeTaskFromUI(newTask.id);
-                });
-
-                taskInput.value = '';
+            if (!token) {
+                window.location.href = 'login.html';
             }
-        });
 
-        function addTaskToUI(task) {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${task.task}</span>
-                <button class="deleteBtn" data-task-id="${task.id}">Delete</button>
-            `;
-            taskList.appendChild(li);
-            li.querySelector('.deleteBtn').addEventListener('click', deleteTask);
-        }
+            const parsedToken = JSON.parse(atob(token.split('.')[1]));
+            const username = parsedToken.username;
+            usernameDisplay.textContent = username;
 
-        function removeTaskFromUI(taskId) {
-            const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-            if (taskElement) {
-                taskElement.parentElement.remove();
-            }
-        }
+            const taskList = document.getElementById("taskList");
+            const newTaskInput = document.getElementById("newTask");
 
-        function deleteTask(event) {
-            const taskId = event.target.getAttribute('data-task-id');
-
-            fetch(`http://localhost:3000/todos/${taskId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': token
-                }
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                if (!response.ok) {
-                    loadTasks();
-                }
-            })
-            .catch(() => {
-                loadTasks();
-            });
-        }
-
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.removeItem('token');
-            window.location.href = 'login.html';
-        });
-
-        document.getElementById('deleteAccountBtn').addEventListener('click', () => {
-            deleteAccountModal.style.display = 'block';
-        });
-
-        closeModal.addEventListener('click', () => {
-            deleteAccountModal.style.display = 'none';
-        });
-
-        cancelDeleteBtn.addEventListener('click', () => {
-            deleteAccountModal.style.display = 'none';
-        });
-
-        confirmDeleteBtn.addEventListener('click', () => {
-            const confirmUsername = confirmUsernameInput.value;
-
-            if (confirmUsername === username) {
-                fetch('http://localhost:3000/users/delete', {
-                    method: 'DELETE',
+            function fetchTasks() {
+                fetch("http://localhost:3000/todos", {
                     headers: {
-                        'Authorization': token,
-                        'Content-Type': 'application/json'
+                        Authorization: localStorage.getItem("token"),
                     },
-                    body: JSON.stringify({ username })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        localStorage.removeItem('token');
-                        window.location.href = 'register.html';
-                    } else {
-                        alert('Error deleting account.');
+                    .then((response) => response.json())
+                    .then((tasks) => {
+                        taskList.innerHTML = "";
+                        tasks.forEach((task) => {
+                            const li = document.createElement("li");
+                            li.innerHTML = `
+                                <span>${task.task}</span>
+                                <div class="button-group">
+                                    <button class="editBtn" data-id="${task.id}">✏️</button>
+                                    <button class="deleteBtn" data-id="${task.id}">Delete</button>
+                                </div>
+                            `;
+                            taskList.appendChild(li);
+                        });
+                    });
+            }
+
+            newTaskInput.addEventListener("keypress", (event) => {
+                if (event.key === "Enter") {
+                    const text = newTaskInput.value;
+                    fetch("http://localhost:3000/todos", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: localStorage.getItem("token"),
+                        },
+                        body: JSON.stringify({ task: text }),
+                    })
+                        .then((response) => response.json())
+                        .then(() => {
+                            newTaskInput.value = "";
+                            fetchTasks();
+                        });
+                }
+            });
+
+            taskList.addEventListener("click", (event) => {
+                if (event.target.classList.contains("deleteBtn")) {
+                    const id = event.target.getAttribute("data-id");
+                    fetch(`http://localhost:3000/todos/${id}`, {
+                        method: "DELETE",
+                        headers: {
+                            Authorization: localStorage.getItem("token"),
+                        },
+                    }).then(() => fetchTasks());
+                } else if (event.target.classList.contains("editBtn")) {
+                    const id = event.target.getAttribute("data-id");
+                    const newText = prompt("Edit task:");
+                    if (newText) {
+                        fetch(`http://localhost:3000/todos/${id}`, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Authorization: localStorage.getItem("token"),
+                            },
+                            body: JSON.stringify({ task: newText }),
+                        }).then(() => fetchTasks());
                     }
-                });
-            } else {
-                alert('Username does not match. Please try again.');
-            }
-        });
+                }
+            });
 
-        loadTasks();
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            });
+
+            document.getElementById('deleteAccountBtn').addEventListener('click', () => {
+                deleteAccountModal.style.display = 'block';
+            });
+
+            closeModal.addEventListener('click', () => {
+                deleteAccountModal.style.display = 'none';
+            });
+
+            cancelDeleteBtn.addEventListener('click', () => {
+                deleteAccountModal.style.display = 'none';
+            });
+
+            confirmDeleteBtn.addEventListener('click', () => {
+                const confirmUsername = confirmUsernameInput.value;
+
+                if (confirmUsername === username) {
+                    fetch('https://todo.ashank.tech/users/delete', {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            localStorage.removeItem('token');
+                            window.location.href = 'register.html';
+                        } else {
+                            alert('Error deleting account.');
+                        }
+                    });
+                } else {
+                    alert('Username does not match. Please try again.');
+                }
+            });
+
+            fetchTasks();
+        });
     </script>
 </body>
+
 </html>

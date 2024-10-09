@@ -122,18 +122,38 @@ li {
     animation: slideIn 0.5s ease-in-out;
 }
 
-.deleteBtn {
-    background-color: #ff4c4c;
-    color: white;
-    border: none;
-    border-radius: 5px;
+li span {
+    flex-grow: 1; /* This will push the buttons to the right */
+    margin-right: 10px; /* Add space between text and buttons */
+}
+
+.button-container {
+    display: flex;
+    gap: 10px; /* Add space between the buttons */
+}
+
+.editBtn, .deleteBtn {
     padding: 5px 10px;
     cursor: pointer;
     transition: background-color 0.3s;
+    border-radius: 5px;
+}
+
+.editBtn {
+    background-color: #4cff55;
+}
+
+.deleteBtn {
+    background-color: #ff4c4c;
+    color: white;
 }
 
 .deleteBtn:hover {
     background-color: #ff0000;
+}
+
+.editBtn:hover {
+    background-color: #3ae03f;
 }
 
 .loginBtn {
@@ -272,8 +292,14 @@ li {
     background-color: #4cff55;
 }
 
-.task-list-container {
-    max-height: 400px; /* Adjust the height as needed */
+.task-container {
+    max-height: 20rem; /* Adjust the height as needed */
     overflow-y: auto;
     padding: 10px;
-  }
+    border-radius: 4px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px; /* Add space between the buttons */
+}

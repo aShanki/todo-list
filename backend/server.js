@@ -79,6 +79,21 @@ app.post('/todos', authenticate, (req, res) => {
     res.json(newTask);
 });
 
+app.put('/todos/:id', authenticate, (req, res) => {
+    const tasks = readJsonFile(tasksFilePath);
+    const taskId = parseInt(req.params.id);
+    const taskIndex = tasks.findIndex(task => task.id === taskId && task.username === req.user.username);
+
+    if (taskIndex === -1) {
+        return res.status(404).json({ message: 'Task not found' });
+    }
+
+    tasks[taskIndex].task = req.body.task;
+    writeJsonFile(tasksFilePath, tasks);
+
+    res.json({ message: 'Task updated' });
+});
+
 app.delete('/todos/:id', authenticate, (req, res) => {
     const tasks = readJsonFile(tasksFilePath);
     const taskId = parseInt(req.params.id);
